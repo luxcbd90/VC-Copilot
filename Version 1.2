@@ -1,0 +1,2138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VC Copilot | Capria Ventures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <style>
+        /* Capria Custom Colors */
+        :root {
+            --capria-blue: #0066CC;
+            --capria-light-blue: #00A8E8;
+            --capria-dark: #1A1A1A;
+            --capria-gray: #F5F5F5;
+            --capria-white: #FFFFFF;
+        }
+        
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* Capria button styles */
+        .btn-capria {
+            background-color: var(--capria-blue);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+        
+        .btn-capria:hover {
+            background-color: #0052A3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+        }
+        
+        /* Card styles */
+        .card-capria {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+        }
+        
+        .card-capria:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        /* Tab styles */
+        .tab-button {
+            font-weight: 500; /* Medium weight for all tabs to prevent "dancing" */
+        }
+        .tab-active {
+            color: var(--capria-blue);
+            border-bottom-color: var(--capria-blue);
+            font-weight: 600; /* Semibold for active tab */
+        }
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        /* Tooltip styles */
+        #tooltip {
+            position: fixed;
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            z-index: 1001;
+            pointer-events: none; /* So it doesn't interfere with mouse events */
+            max-width: 300px;
+            white-space: normal;
+        }
+        .task-item:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+<!-- Global Tooltip Element -->
+<div id="tooltip" class="hidden"></div>
+
+<!-- Header -->
+<header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+            <div class="flex items-center">
+                <div class="flex items-center">
+                    <svg class="h-8 w-auto mr-3" viewBox="0 0 40 40">
+                        <circle cx="20" cy="20" r="18" fill="#0066CC"/>
+                        <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="16" font-weight="bold">VC</text>
+                    </svg>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">VC COPILOT</h1>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider">Capria Ventures</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div id="results" class="text-sm text-gray-600"></div>
+                <div id="timeDisplay" class="text-sm text-gray-500 text-right"></div>
+                <button id="workdayBtn" class="btn-capria text-xs py-2 px-3"></button>
+                <div id="driveStatus" class="flex items-center space-x-2 text-sm">
+                    <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <span class="text-gray-600">Not Connected</span>
+                </div>
+                <button onclick="connectGoogle()" id="connectBtn" class="btn-capria">
+                    CONNECT
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Navigation -->
+<nav class="bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex space-x-8">
+            <button onclick="showTab('myDay')" id="myDayTab" class="tab-button py-4 border-b-2 tab-active">
+                MY DAY
+            </button>
+            <button onclick="showTab('analysis')" id="analysisTab" class="tab-button py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+                ANALYSIS PIPELINE
+            </button>
+            <button onclick="showTab('sourcing')" id="sourcingTab" class="tab-button py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+                SOURCING
+            </button>
+            <button onclick="showTab('config')" id="configTab" class="tab-button py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+                CONFIG
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Analysis Pipeline Tab -->
+    <div id="analysisContent" class="tab-content hidden">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Analysis Pipeline</h2>
+            <p class="text-gray-600">Manage your startup analysis pipeline and automate document creation</p>
+        </div>
+
+        <!-- Pipeline Tracking Dashboard -->
+        <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Active Pipeline</h3>
+            <div id="pipelineDashboard" class="card-capria">
+                <!-- Dashboard content will be rendered here by JavaScript -->
+            </div>
+            <div class="mt-4">
+                <button onclick="UI.showManualEntryModal()" class="btn-capria bg-indigo-600 hover:bg-indigo-700 text-sm py-2 px-4">
+                    Add Manual Entry
+                </button>
+            </div>
+        </div>
+
+        <!-- Concluded Analyses Dashboard -->
+        <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Concluded Analyses</h3>
+            <div id="concludedDashboard" class="card-capria">
+                <!-- Concluded dashboard content will be rendered here -->
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1">
+            <!-- Company Setup -->
+            <div>
+                <div class="card-capria p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Create New Analysis</h3>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                            <input type="text" id="companyName" placeholder="Enter company name" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+                            <input type="text" id="sector" placeholder="e.g., FinTech" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Investment Round</label>
+                            <select id="roundType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Select round</option>
+                                <option value="Pre-Seed">Pre-Seed</option>
+                                <option value="Seed">Seed</option>
+                                <option value="Pre-Series A">Pre-Series A</option>
+                                <option value="Series A">Series A</option>
+                                <option value="Series B">Series B</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Team Member</label>
+                            <input type="text" id="teamMember" placeholder="Assigned team member" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Analysis Type</label>
+                        <select id="analysisType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                        <div class="mt-2 flex items-center">
+                            <input id="meetingNotesOnly" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            <label for="meetingNotesOnly" class="ml-2 block text-sm text-gray-900">Create folder with Meeting Notes only</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Pitch Deck (Optional)</label>
+                        <input type="file" id="pitchDeckFile" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    
+                    <div class="border-t pt-6 space-y-3">
+                        <button onclick="createFoldersAndUpload()" class="w-full btn-capria bg-green-600 hover:bg-green-700">
+                            Create Folders & Upload
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sourcing Tab -->
+    <div id="sourcingContent" class="tab-content hidden">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Sourcing</h2>
+            <p class="text-gray-600">AI-powered news aggregation and database for the LATAM startup ecosystem</p>
+        </div>
+
+        <!-- Daily Sourcing Suggestions -->
+        <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">AI Sourcing Suggestions</h3>
+            <div class="card-capria p-6">
+                <div class="flex justify-end items-center mb-4">
+                    <button onclick="DailySourcing.fetchData()" class="btn-capria">Load Daily Suggestions</button>
+                </div>
+                <div id="dailySourcingDashboard" class="overflow-x-auto">
+                    <p class="text-center text-gray-500 py-4">Click "Load Daily Suggestions" to see today's startups.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cubo Database Dashboard -->
+        <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Cubo Startup Database</h3>
+            <div class="card-capria p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <input type="text" id="cuboSearch" placeholder="Search by name, sector, etc..." class="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-md">
+                    <button onclick="CuboDatabase.fetchData()" class="btn-capria">Load/Refresh Data</button>
+                </div>
+                <div id="cuboDatabase" class="overflow-x-auto">
+                    <!-- Cubo DB table will be rendered here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- News Feed -->
+            <div class="lg:col-span-2">
+                <div class="card-capria p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900">Latest News</h3>
+                        <div class="space-x-2">
+                            <button onclick="startDeepResearch()" class="btn-capria bg-purple-600 hover:bg-purple-700">
+                                Deep Research
+                            </button>
+                            <button onclick="refreshNews()" class="btn-capria">
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="mb-6 space-y-3">
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="filterNews('all')" class="filter-btn px-4 py-2 rounded-md bg-blue-100 text-blue-700 font-medium">All</button>
+                            <button onclick="filterNews('brazil')" class="filter-btn px-4 py-2 rounded-md bg-gray-100 text-gray-700">🇧🇷 Brazil</button>
+                            <button onclick="filterNews('mexico')" class="filter-btn px-4 py-2 rounded-md bg-gray-100 text-gray-700">🇲🇽 Mexico</button>
+                            <button onclick="filterNews('argentina')" class="filter-btn px-4 py-2 rounded-md bg-gray-100 text-gray-700">🇦🇷 Argentina</button>
+                            <button onclick="filterNews('colombia')" class="filter-btn px-4 py-2 rounded-md bg-gray-100 text-gray-700">🇨🇴 Colombia</button>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-sm text-gray-500">Sectors:</span>
+                            <button onclick="filterBySector('fintech')" class="sector-btn px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-sm">💳 FinTech</button>
+                            <button onclick="filterBySector('agtech')" class="sector-btn px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-sm">🌱 AgTech</button>
+                            <button onclick="filterBySector('healthtech')" class="sector-btn px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-sm">🏥 HealthTech</button>
+                            <button onclick="filterBySector('logtech')" class="sector-btn px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-sm">🚚 LogTech</button>
+                            <button onclick="filterBySector('hrtech')" class="sector-btn px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-sm">👥 HRTech</button>
+                            <button onclick="filterBySector('jobtech')" class="sector-btn px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-sm">💼 JobTech</button>
+                        </div>
+                    </div>
+                    
+                    <!-- News Items -->
+                    <div id="newsFeed" class="space-y-4">
+                        <div class="text-center py-12 text-gray-500">
+                            <div class="mb-4">
+                                <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                                </svg>
+                            </div>
+                            <p class="font-medium text-gray-900 mb-2">Ready for AI-powered news intelligence</p>
+                            <p class="text-sm mb-4">Start Deep Research to analyze LATAM startup ecosystem</p>
+                            <button onclick="startDeepResearch()" class="btn-capria">
+                                Start Deep Research
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Intelligence Dashboard -->
+            <div class="lg:col-span-1">
+                <div class="card-capria p-6 mb-4">
+                    <h4 class="font-semibold text-gray-900 mb-4">Intelligence Stats</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Articles Found</span>
+                            <span id="articlesCount" class="font-semibold">0</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">AI Relevant</span>
+                            <span id="relevantCount" class="font-semibold text-green-600">0</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Your Feedback</span>
+                            <span id="feedbackCount" class="font-semibold">0</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">AI Accuracy</span>
+                            <span id="aiAccuracy" class="font-semibold text-blue-600">Learning...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-capria p-6">
+                    <h4 class="font-semibold text-gray-900 mb-4">Daily Briefing</h4>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Schedule Time</label>
+                            <select id="briefingTime" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <option value="07:00">7:00 AM</option>
+                                <option value="08:00" selected>8:00 AM</option>
+                                <option value="09:00">9:00 AM</option>
+                            </select>
+                        </div>
+                        <button onclick="viewLearningInsights()" class="w-full btn-capria bg-purple-600 hover:bg-purple-700">
+                            View Insights
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- My Day Tab -->
+    <div id="myDayContent" class="tab-content fade-in">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">My Day</h2>
+            <p class="text-gray-600">Track your working hours and manage your tasks.</p>
+        </div>
+
+        <!-- Working Hours Insights -->
+        <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Working Hours Insights</h3>
+            <div id="workHoursInsights" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Insights will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Tasks Dashboard -->
+        <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">My Tasks</h3>
+            <div class="card-capria p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <select id="taskLists" class="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-md"></select>
+                    <button onclick="Tasks.fetchTasks()" class="btn-capria">Load Tasks</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Today's Focus</h4>
+                        <div id="todayFocusTasks" class="space-y-2"></div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">All Tasks</h4>
+                        <div id="allTasks" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Working Hours Log -->
+        <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Work Session Log</h3>
+            <div id="workHoursLog" class="card-capria">
+                <!-- Log table will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Tab -->
+    <div id="configContent" class="tab-content hidden">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">System Configuration</h2>
+            <p class="text-gray-600">Manage your VC Copilot settings and preferences</p>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card-capria p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Template Files Setup</h3>
+                <div class="border-t pt-4">
+                    <p class="text-sm text-gray-500 mb-4">Setup each template by clicking its button. This is a one-time process.</p>
+                    <div id="templateList" class="space-y-2 text-sm">
+                        <!-- Template status and buttons will be shown here -->
+                    </div>
+                    <div id="setupResults" class="text-gray-600 text-sm mt-4"></div>
+                    <button onclick="clearTemplateSetup()" class="w-full btn-capria bg-red-600 hover:bg-red-700 mt-4">
+                        Clear Saved Templates
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-capria p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Custom Template Types</h3>
+                <form id="customTemplateForm">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Template Name</label>
+                            <input type="text" id="customTemplateName" placeholder="e.g., IC Meeting Minute" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">File Naming Pattern</label>
+                            <input type="text" id="customTemplatePattern" placeholder="{company} - My Template" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="w-full btn-capria">Add Custom Template</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Manual Entry Modal -->
+<div id="manualEntryModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Add Manual Pipeline Entry</h3>
+        <form id="manualEntryForm">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Company Name</label>
+                    <input type="text" id="manualCompanyName" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700">Sector</label>
+                    <input type="text" id="manualSector" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Analysis Type</label>
+                    <select id="manualAnalysisType" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Google Drive Folder Link</label>
+                    <input type="url" id="manualFolderLink" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Document Link</label>
+                    <input type="url" id="manualDocLink" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Meeting Notes Link</label>
+                    <input type="url" id="manualNotesLink" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" onclick="UI.hideManualEntryModal()" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg">Cancel</button>
+                <button type="submit" class="btn-capria">Save Entry</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Deletion</h3>
+        <p class="text-gray-600 mb-4">Are you sure you want to delete this entry? This action cannot be undone.</p>
+        <div class="flex justify-end space-x-3">
+            <button onclick="UI.hideDeleteConfirmModal()" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg">Cancel</button>
+            <button id="confirmDeleteBtn" class="btn-capria bg-red-600 hover:bg-red-700">Delete</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+// ===== CONFIGURATION MODULE =====
+const Config = {
+    GOOGLE_CLIENT_ID: '373026233196-d8k89cfdugb1quns501a19rs4kq3ut4n.apps.googleusercontent.com',
+    GOOGLE_SCOPES: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/tasks',
+    
+    SHARED_DRIVE_ID: '1N-ynXFjgbtXpiYJHCABCB8_BsAJei5kN', 
+    CUBO_SHEET_ID: '1cZaXN-RdYQUAI1QastJC-G9ekR4CnFZRgDLcmuOxI9M',
+    DAILY_SOURCING_SHEET_ID: '1ErEL2XYybLIf6V990otEU511L3cylxp-zoJm3KM9bxE',
+    SOURCING_FEEDBACK_SHEET_ID: '16CnBbsugtlEcZHWXpT5NQPOha2LPP85DK4rKS5W6ZVI',
+
+    STATUS_OPTIONS: ['Analyzing', 'Passed', 'Concluded', 'On Hold'],
+    
+    TEMPLATE_PATHS: {
+        'meeting-notes': 'C:\\Área de Trabalho\\Capria Templates\\2 - Memo Templates\\TEMPLATE - Meeting Notes.docx',
+        'ic-alert-preview': 'C:\\Área de Trabalho\\Capria Templates\\2 - Memo Templates\\TEMPLATE *Co Name* *Round Name* IC Alert Preview *YYYY-MMM-DD*.docx',
+        'ic-learning-memo': 'C:\\Área de Trabalho\\Capria Templates\\2 - Memo Templates\\TEMPLATE_ *Co Name* IC Learning Memo One Pager *YYYY-MM-DD*.docx',
+        'ic-alert': 'C:\\Área de Trabalho\\Capria Templates\\2 - Memo Templates\\TEMPLATE_ *Co Name* *Round Name* IC Alert *YYYY-MM-DD* - Current.docx',
+        'ic-memo': 'C:\\Área de Trabalho\\Capria Templates\\2 - Memo Templates\\TEMPLATE_ *Co Name* *Round Name* IC Memo - *YYYY-MM-DD* CURRENT.docx',
+        'ic-follow-on': 'C:\\Área de Trabalho\\Capria Templates\\2 - Memo Templates\\TEMPLATE_ *Co Name* *Round Name* Follow-On IC Memo - CURRENT.docx'
+    },
+    
+    TEMPLATES: {
+        'meeting-notes': {
+            name: 'Meeting Notes',
+            keywords: ['meeting', 'notes', 'template'],
+            folder: 'First Meeting Notes',
+            namePattern: '{company} - Meeting Notes'
+        },
+        'ic-learning-memo': {
+            name: 'IC Learning Memo',
+            keywords: ['learning', 'memo', 'one', 'pager'],
+            folder: 'main',
+            namePattern: '{company} IC Learning Memo One Pager {date}'
+        },
+        'ic-alert-preview': {
+            name: 'IC Alert Preview',
+            keywords: ['alert', 'preview', 'ic'],
+            folder: 'main',
+            namePattern: '{company} {round} IC Alert Preview {date_mmm}'
+        },
+        'ic-alert': {
+            name: 'IC Alert (Full)',
+            keywords: ['alert', 'current', 'ic', 'full'],
+            folder: 'main',
+            namePattern: '{company} {round} IC Alert {date} - Current'
+        },
+        'ic-memo': {
+            name: 'IC Memo',
+            keywords: ['ic', 'memo', 'current'],
+            folder: 'main',
+            namePattern: '{company} {round} IC Memo - {date} CURRENT'
+        },
+        'ic-follow-on': {
+            name: 'IC Follow On Memo',
+            keywords: ['follow', 'on', 'memo', 'current'],
+            folder: 'main',
+            namePattern: '{company} {round} Follow-On IC Memo - CURRENT'
+        }
+    },
+    
+    LATAM_KEYWORDS: {
+        countries: ['brazil', 'brasil', 'mexico', 'argentina', 'colombia', 'chile', 'peru'],
+        cities: ['são paulo', 'rio de janeiro', 'mexico city', 'buenos aires', 'bogotá', 'santiago', 'lima'],
+        stages: ['pre-seed', 'seed', 'pre-series a', 'series a', 'funding', 'investment', 'raised'],
+        sectors: {
+            fintech: ['fintech', 'financial', 'banking', 'payment', 'credit', 'neobank'],
+            agtech: ['agtech', 'agriculture', 'farming', 'agribusiness', 'crop'],
+            healthtech: ['healthtech', 'health', 'medical', 'healthcare', 'telemedicine'],
+            logtech: ['logtech', 'logistics', 'supply chain', 'delivery', 'transportation', 'freight'],
+            hrtech: ['hrtech', 'human resources', 'hr', 'talent', 'recruitment'],
+            jobtech: ['jobtech', 'employment', 'job', 'career', 'freelance', 'gig economy']
+        }
+    }
+};
+
+// ===== STATE MODULE =====
+const State = {
+    isGoogleConnected: false,
+    gapiInited: false,
+    gisInited: false,
+    tokenClient: null,
+    companyFolders: {},
+    templateIds: JSON.parse(localStorage.getItem('templateIds') || '{}'),
+    analysisPipeline: JSON.parse(localStorage.getItem('analysisPipeline') || '[]'),
+    isWorkDayActive: JSON.parse(localStorage.getItem('isWorkDayActive') || 'false'),
+    workSessions: JSON.parse(localStorage.getItem('workSessions') || '[]'),
+    sourcingFeedback: JSON.parse(localStorage.getItem('sourcingFeedback') || '{}'),
+    cuboData: [],
+    dailySourcingData: [],
+    taskLists: [],
+    tasks: [],
+    todaysFocusTasks: JSON.parse(localStorage.getItem('todaysFocusTasks') || '[]'),
+    newsData: {
+        articles: [],
+        userFeedback: {},
+        learningHistory: [],
+        aiAccuracy: 0,
+        lastUpdate: null,
+        lastDeepResearch: null
+    }
+};
+
+// ===== UI MODULE =====
+const UI = {
+    showTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('tab-active');
+        });
+        
+        document.getElementById(tabName + 'Content').classList.remove('hidden');
+        document.getElementById(tabName + 'Content').classList.add('fade-in');
+        
+        const activeTab = document.getElementById(tabName + 'Tab');
+        activeTab.classList.add('tab-active');
+        
+        if (tabName === 'config') {
+            this.updateTemplateStatus();
+        }
+        if (tabName === 'myDay') {
+            this.renderWorkdayDashboard();
+            this.renderTasksDashboard();
+        }
+    },
+    
+    updateResults(content, type = 'default', duration = 5000, elementId = 'results') {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+
+        const styles = {
+            'success': 'text-green-600',
+            'error': 'text-red-600',
+            'warning': 'text-yellow-600',
+            'info': 'text-blue-600',
+            'default': 'text-gray-600'
+        };
+        
+        if (typeof content === 'string' && !content.includes('<div>')) {
+            el.innerHTML = `<p class="${styles[type] || styles.default}">${content}</p>`;
+        } else {
+            el.innerHTML = content;
+        }
+
+        if (duration > 0) {
+           setTimeout(() => {
+                if (el.innerHTML === content) {
+                    el.innerHTML = (elementId === 'results') ? '' : '';
+                }
+           }, duration);
+        }
+    },
+    
+    updateDriveStatus(connected) {
+        const statusDiv = document.getElementById('driveStatus');
+        const dot = statusDiv.querySelector('div');
+        const text = statusDiv.querySelector('span');
+        const button = document.getElementById('connectBtn');
+        
+        if (connected) {
+            dot.className = 'w-2 h-2 bg-green-500 rounded-full';
+            text.textContent = 'Connected';
+            text.className = 'text-green-600';
+            button.textContent = 'DISCONNECT';
+            button.classList.add('bg-red-600');
+            button.classList.remove('bg-blue-600');
+        } else {
+            dot.className = 'w-2 h-2 bg-gray-400 rounded-full';
+            text.textContent = 'Not Connected';
+            text.className = 'text-gray-600';
+            button.textContent = 'CONNECT';
+            button.classList.remove('bg-red-600');
+            button.classList.add('bg-blue-600');
+        }
+    },
+    
+    updateNewsStats() {
+        document.getElementById('articlesCount').textContent = State.newsData.articles.length;
+        document.getElementById('relevantCount').textContent = State.newsData.articles.filter(a => a.aiScore >= 5).length;
+        document.getElementById('feedbackCount').textContent = Object.keys(State.newsData.userFeedback).length;
+        document.getElementById('aiAccuracy').textContent = State.newsData.aiAccuracy > 0 ? `${State.newsData.aiAccuracy}%` : 'Learning...';
+    },
+    
+    updateTemplateStatus() {
+        const templateList = document.getElementById('templateList');
+        const templates = Object.keys(Config.TEMPLATES);
+        
+        const statusHtml = templates.map(key => {
+            const template = Config.TEMPLATES[key];
+            const isSetup = !!State.templateIds[key];
+            
+            const statusIndicator = isSetup 
+                ? `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Ready</span>`
+                : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Not Setup</span>`;
+                
+            const buttonText = isSetup ? 'Re-Setup' : 'Setup';
+            const buttonColor = isSetup ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-600 hover:bg-blue-700';
+
+            const setupButton = `<button onclick="setupSingleTemplate('${key}')" class="text-white font-bold py-1 px-3 rounded text-xs ${buttonColor}">${buttonText}</button>`;
+            const openButton = isSetup ? `<a href="https://docs.google.com/document/d/${State.templateIds[key]}/edit" target="_blank" class="text-white font-bold py-1 px-3 rounded text-xs bg-blue-500 hover:bg-blue-600">Open</a>` : '';
+
+            return `
+                <div class="flex justify-between items-center p-2 border-b last:border-b-0">
+                    <span>${template.name}</span>
+                    <div class="flex items-center gap-2">
+                        ${statusIndicator}
+                        ${openButton}
+                        ${setupButton}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        templateList.innerHTML = statusHtml;
+    },
+
+    renderAllDashboards() {
+        this.renderPipelineDashboard('pipelineDashboard', false); // Active
+        this.renderPipelineDashboard('concludedDashboard', true); // Concluded
+    },
+
+    renderPipelineDashboard(elementId, showConcluded) {
+        const container = document.getElementById(elementId);
+        const allAnalyses = State.analysisPipeline;
+
+        const analyses = allAnalyses.filter(item => {
+            const isConcluded = item.status === 'Concluded';
+            return showConcluded ? isConcluded : !isConcluded;
+        });
+
+        if (analyses.length === 0) {
+            const message = showConcluded ? 'No concluded analyses yet.' : 'No active analyses. Create one below!';
+            container.innerHTML = `<div class="text-center p-8 text-gray-500"><p>${message}</p></div>`;
+            return;
+        }
+
+        const tableHeaders = `
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sector</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Analysis Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Links</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+        `;
+
+        const tableRows = analyses.map(item => {
+            const statusOptions = Config.STATUS_OPTIONS.map(opt => 
+                `<option value="${opt}" ${item.status === opt ? 'selected' : ''}>${opt}</option>`
+            ).join('');
+
+            const concludeButton = !showConcluded 
+                ? `<button onclick="Pipeline.concludeAnalysis(${item.id})" class="text-green-600 hover:text-green-800 ml-4">Conclude</button>`
+                : '';
+            
+            const analysisName = Config.TEMPLATES[item.analysisType]?.name || item.analysisType;
+
+            return `
+                <tr class="bg-white border-b hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.companyName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.sector || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${analysisName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <select onchange="Pipeline.updateStatus(${item.id}, this.value)" class="w-full p-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500">
+                            ${statusOptions}
+                        </select>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                        <a href="${item.folderLink}" target="_blank" class="text-blue-600 hover:text-blue-800">Folder</a>
+                        <a href="${item.docLink}" target="_blank" class="text-blue-600 hover:text-blue-800">Doc</a>
+                        <a href="${item.meetingNotesLink}" target="_blank" class="text-blue-600 hover:text-blue-800">Notes</a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="UI.showDeleteConfirmModal(${item.id})" class="text-red-600 hover:text-red-800">Delete</button>
+                        ${concludeButton}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        container.innerHTML = `<div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">${tableHeaders}<tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody></table>
+        </div>`;
+    },
+
+    showManualEntryModal() {
+        document.getElementById('manualEntryModal').classList.remove('hidden');
+    },
+
+    hideManualEntryModal() {
+        document.getElementById('manualEntryModal').classList.add('hidden');
+        document.getElementById('manualEntryForm').reset();
+    },
+
+    showDeleteConfirmModal(itemId) {
+        const modal = document.getElementById('deleteConfirmModal');
+        modal.classList.remove('hidden');
+        document.getElementById('confirmDeleteBtn').onclick = () => Pipeline.deleteAnalysis(itemId);
+    },
+
+    hideDeleteConfirmModal() {
+        document.getElementById('deleteConfirmModal').classList.add('hidden');
+    },
+
+    populateTemplateDropdowns() {
+        const analysisTypeSelect = document.getElementById('analysisType');
+        const manualAnalysisTypeSelect = document.getElementById('manualAnalysisType');
+        
+        analysisTypeSelect.innerHTML = '<option value="">Select analysis type</option>';
+        manualAnalysisTypeSelect.innerHTML = ''; // Clear existing
+
+        for (const key in Config.TEMPLATES) {
+            if (key !== 'meeting-notes') {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = Config.TEMPLATES[key].name;
+                analysisTypeSelect.appendChild(option.cloneNode(true));
+                manualAnalysisTypeSelect.appendChild(option);
+            }
+        }
+        const otherOption = document.createElement('option');
+        otherOption.value = 'other';
+        otherOption.textContent = 'Other (Manual)';
+        manualAnalysisTypeSelect.appendChild(otherOption);
+    },
+
+    updateClock() {
+        const now = new Date();
+        const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+        document.getElementById('timeDisplay').textContent = now.toLocaleDateString('en-US', options);
+    },
+
+    updateWorkdayButton() {
+        const btn = document.getElementById('workdayBtn');
+        if (State.isWorkDayActive) {
+            btn.textContent = 'Finish Working Day';
+            btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            btn.classList.add('bg-red-600', 'hover:bg-red-700');
+        } else {
+            btn.textContent = 'Start Working Day';
+            btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            btn.classList.add('bg-green-600', 'hover:bg-green-700');
+        }
+    },
+
+    showTooltip(event, text) {
+        const tooltip = document.getElementById('tooltip');
+        tooltip.textContent = text;
+        tooltip.classList.remove('hidden');
+        tooltip.style.left = `${event.pageX + 10}px`;
+        tooltip.style.top = `${event.pageY + 10}px`;
+    },
+
+    hideTooltip() {
+        document.getElementById('tooltip').classList.add('hidden');
+    },
+
+    renderWorkdayDashboard() {
+        const insightsContainer = document.getElementById('workHoursInsights');
+        const logContainer = document.getElementById('workHoursLog');
+        const sessions = State.workSessions;
+
+        // Calculate Insights
+        const totalHours = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+        const avgHours = sessions.length > 0 ? totalHours / sessions.length : 0;
+
+        insightsContainer.innerHTML = `
+            <div class="card-capria p-4 text-center">
+                <h4 class="text-sm font-medium text-gray-500">Total Hours Logged</h4>
+                <p class="text-2xl font-bold text-gray-900">${(totalHours / 3600000).toFixed(2)}</p>
+            </div>
+            <div class="card-capria p-4 text-center">
+                <h4 class="text-sm font-medium text-gray-500">Average Workday</h4>
+                <p class="text-2xl font-bold text-gray-900">${(avgHours / 3600000).toFixed(2)} hours</p>
+            </div>
+        `;
+
+        // Render Log Table
+        if (sessions.length === 0) {
+            logContainer.innerHTML = '<p class="text-center text-gray-500 p-8">No work sessions logged yet.</p>';
+            return;
+        }
+
+        const tableHeaders = `
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                </tr>
+            </thead>
+        `;
+
+        const tableRows = sessions.map(s => {
+            const startDate = new Date(s.startTime);
+            const endDate = s.endTime ? new Date(s.endTime) : null;
+            const duration = s.duration ? `${(s.duration / 3600000).toFixed(2)} hours` : 'In Progress';
+            return `
+                <tr class="bg-white border-b">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${startDate.toLocaleDateString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${startDate.toLocaleTimeString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${endDate ? endDate.toLocaleTimeString() : '---'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${duration}</td>
+                </tr>
+            `;
+        }).join('');
+
+        logContainer.innerHTML = `<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">${tableHeaders}<tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody></table></div>`;
+    },
+
+    renderTasksDashboard() {
+        const taskListsSelect = document.getElementById('taskLists');
+        taskListsSelect.innerHTML = State.taskLists.map(list => `<option value="${list.id}">${list.title}</option>`).join('');
+        
+        this.renderTasks(State.tasks, 'allTasks');
+        this.renderTasks(State.todaysFocusTasks, 'todayFocusTasks');
+    },
+
+    renderTasks(tasks, elementId) {
+        const container = document.getElementById(elementId);
+        if (!tasks || tasks.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-500">No tasks.</p>';
+            return;
+        }
+
+        container.innerHTML = tasks.map(task => {
+            const isCompleted = task.status === 'completed';
+            const addToTodayButton = elementId === 'allTasks' 
+                ? `<button onclick="Tasks.addToToday('${task.id}')" class="text-xs text-blue-500 hover:text-blue-700 ml-auto">Add to Today</button>`
+                : '';
+
+            return `
+                <div class="task-item flex items-center p-2 border-b">
+                    <input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="Tasks.updateTaskStatus('${task.id}', this.checked, '${elementId}')" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    <span class="ml-3 text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-800'}">${task.title}</span>
+                    ${addToTodayButton}
+                </div>
+            `;
+        }).join('');
+    }
+};
+
+// ===== GOOGLE DRIVE MODULE =====
+const GoogleDrive = {
+    async init() {
+        console.log('🔄 Initializing Google APIs...');
+        
+        try {
+            await new Promise((resolve, reject) => {
+                gapi.load('client', { callback: resolve, onerror: reject });
+            });
+            
+            await gapi.client.init({
+                discoveryDocs: [
+                    'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest', 
+                    'https://sheets.googleapis.com/$discovery/rest?version=v4',
+                    'https://tasks.googleapis.com/$discovery/rest?version=v1'
+                ],
+            });
+            
+            State.gapiInited = true;
+            
+            State.tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: Config.GOOGLE_CLIENT_ID,
+                scope: Config.GOOGLE_SCOPES,
+                callback: (tokenResponse) => {
+                    if (tokenResponse.access_token) {
+                        State.isGoogleConnected = true;
+                        UI.updateDriveStatus(true);
+                        UI.updateResults('✅ Connected to Google Drive!', 'success');
+                        Tasks.getTaskLists();
+                    }
+                },
+            });
+            
+            State.gisInited = true;
+            UI.updateResults('✅ Google APIs ready! Click Connect to authenticate.', 'success');
+            
+        } catch (error) {
+            console.error('❌ Error initializing Google APIs:', error);
+            UI.updateResults('❌ Google API initialization failed', 'error');
+        }
+    },
+    
+    connect() {
+        if (!State.gapiInited || !State.gisInited) {
+            UI.updateResults('⏳ Wait for APIs to load...', 'warning');
+            return;
+        }
+        
+        if (State.isGoogleConnected) {
+            const token = gapi.client.getToken();
+            if (token !== null) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken('');
+            }
+            State.isGoogleConnected = false;
+            UI.updateDriveStatus(false);
+            UI.updateResults('🔐 Disconnected from Google Drive', 'default');
+        } else {
+            State.tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+    }
+};
+
+// ===== PIPELINE MODULE =====
+const Pipeline = {
+    addManualAnalysis(data) {
+        const newAnalysis = {
+            id: Date.now(),
+            companyName: data.companyName,
+            sector: data.sector,
+            analysisType: data.analysisType,
+            status: 'Analyzing',
+            date: new Date().toISOString().split('T')[0],
+            folderLink: data.folderLink,
+            docLink: data.docLink,
+            meetingNotesLink: data.notesLink
+        };
+        this.trackAnalysis(newAnalysis);
+    },
+
+    trackAnalysis(newItem) {
+        State.analysisPipeline.unshift(newItem);
+        this.save();
+        UI.renderAllDashboards();
+    },
+
+    deleteAnalysis(itemId) {
+        State.analysisPipeline = State.analysisPipeline.filter(item => item.id !== itemId);
+        this.save();
+        UI.renderAllDashboards();
+        UI.hideDeleteConfirmModal();
+        UI.updateResults('✅ Entry deleted.', 'success');
+    },
+
+    concludeAnalysis(itemId) {
+        const item = State.analysisPipeline.find(i => i.id === itemId);
+        if (item) {
+            item.status = 'Concluded';
+            this.save();
+            UI.renderAllDashboards();
+            UI.updateResults(`${item.companyName} moved to Concluded.`, 'success');
+        }
+    },
+
+    updateStatus(itemId, newStatus) {
+        const item = State.analysisPipeline.find(i => i.id === itemId);
+        if (item) {
+            item.status = newStatus;
+            this.save();
+            UI.renderAllDashboards();
+            UI.updateResults(`Status for ${item.companyName} updated to ${newStatus}`, 'success');
+        }
+    },
+    
+    save() {
+        localStorage.setItem('analysisPipeline', JSON.stringify(State.analysisPipeline));
+    }
+};
+
+// ===== TEMPLATE MODULE =====
+const TemplateSystem = {
+    generateFileName(template, companyName, roundType = '') {
+        const today = new Date();
+        const date = today.toISOString().split('T')[0];
+        const dateMmmDD = today.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+        const dateYYYYMmmDD = today.getFullYear() + '-' + dateMmmDD;
+        
+        let fileName = template.namePattern;
+        fileName = fileName.replace('{company}', companyName);
+        fileName = fileName.replace('{round}', roundType || 'Round');
+        fileName = fileName.replace('{date}', date);
+        fileName = fileName.replace('{date_mmm}', dateYYYYMmmDD);
+        
+        return fileName;
+    },
+    
+    async createFoldersAndUpload() {
+        if (!State.isGoogleConnected) {
+            UI.updateResults('⚠️ Connect to Google Drive first', 'warning');
+            return;
+        }
+        
+        const companyName = document.getElementById('companyName').value.trim();
+        const sector = document.getElementById('sector').value.trim();
+        const analysisType = document.getElementById('analysisType').value;
+        const roundType = document.getElementById('roundType').value;
+        const meetingNotesOnly = document.getElementById('meetingNotesOnly').checked;
+        const pitchDeckFile = document.getElementById('pitchDeckFile').files[0];
+
+        if (!companyName) {
+            UI.updateResults('⚠️ Company name is required.', 'warning');
+            return;
+        }
+        if (!meetingNotesOnly && !analysisType) {
+            UI.updateResults('⚠️ Analysis type is required unless creating for meeting notes only.', 'warning');
+            return;
+        }
+        
+        if ((!meetingNotesOnly && !State.templateIds[analysisType]) || !State.templateIds['meeting-notes']) {
+            UI.updateResults('⚠️ Please setup templates first in the Config tab', 'warning');
+            return;
+        }
+        
+        let mainFolderId;
+        try {
+            // Step 1: Create Folders
+            UI.updateResults('🔄 Creating folder structure...', 'info');
+            const mainFolderName = `${companyName}`;
+            const mainFolder = await gapi.client.drive.files.create({
+                resource: {
+                    name: mainFolderName,
+                    mimeType: 'application/vnd.google-apps.folder',
+                    parents: [Config.SHARED_DRIVE_ID] 
+                },
+                supportsAllDrives: true,
+                fields: 'id'
+            });
+            
+            mainFolderId = mainFolder.result.id;
+            const subfolders = ['1 - Cap Table LATEST', '1 - Marketing Materials', '1 - Reporting', 'First Meeting Notes', 'Series A'];
+            const createdFolders = { 'main': mainFolderId };
+            
+            for (const folderName of subfolders) {
+                const folder = await gapi.client.drive.files.create({
+                    resource: {
+                        name: folderName,
+                        parents: [mainFolderId],
+                        mimeType: 'application/vnd.google-apps.folder'
+                    },
+                    supportsAllDrives: true,
+                    fields: 'id'
+                });
+                createdFolders[folderName] = folder.result.id;
+            }
+            State.companyFolders[companyName] = createdFolders;
+            UI.updateResults('✅ Folders created. Uploading files...', 'success');
+            
+            let analysisCopy = null;
+            if (!meetingNotesOnly) {
+                const template = Config.TEMPLATES[analysisType];
+                const analysisTargetFolder = createdFolders[template.folder] || createdFolders['main'];
+                const analysisFileName = this.generateFileName(template, companyName, roundType);
+                analysisCopy = await gapi.client.drive.files.copy({
+                    fileId: State.templateIds[analysisType],
+                    resource: { name: analysisFileName, parents: [analysisTargetFolder] },
+                    supportsAllDrives: true,
+                    fields: 'id'
+                });
+            }
+
+            const meetingNotesFolder = createdFolders['First Meeting Notes'];
+            const meetingNotesName = this.generateFileName(Config.TEMPLATES['meeting-notes'], companyName);
+            const meetingNotesCopy = await gapi.client.drive.files.copy({
+                fileId: State.templateIds['meeting-notes'],
+                resource: { name: meetingNotesName, parents: [meetingNotesFolder] },
+                supportsAllDrives: true,
+                fields: 'id'
+            });
+
+            if (pitchDeckFile) {
+                UI.updateResults('Uploading Pitch Deck...', 'info');
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const content = e.target.result;
+                    const metadata = { name: pitchDeckFile.name, parents: [mainFolderId] };
+                    const boundary = '-------314159265358979323846';
+                    const delimiter = "\r\n--" + boundary + "\r\n";
+                    const close_delim = "\r\n--" + boundary + "--";
+                    const multipartRequestBody =
+                        delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) +
+                        delimiter + `Content-Type: ${pitchDeckFile.type}\r\n` + 'Content-Transfer-Encoding: base64\r\n\r\n' + content.split(',')[1] + close_delim;
+                    
+                    await gapi.client.request({
+                        path: '/upload/drive/v3/files',
+                        method: 'POST',
+                        params: { uploadType: 'multipart', supportsAllDrives: true },
+                        headers: { 'Content-Type': 'multipart/related; boundary="' + boundary + '"' },
+                        body: multipartRequestBody
+                    });
+                };
+                reader.readAsDataURL(pitchDeckFile);
+            }
+            
+            // Step 3: Track Analysis
+            const newAnalysis = {
+                id: Date.now(),
+                companyName,
+                sector,
+                analysisType: meetingNotesOnly ? 'Meeting Notes Only' : analysisType,
+                status: 'Analyzing',
+                date: new Date().toISOString().split('T')[0],
+                folderLink: `https://drive.google.com/drive/folders/${mainFolderId}`,
+                docLink: analysisCopy ? `https://docs.google.com/document/d/${analysisCopy.result.id}/edit` : '#',
+                meetingNotesLink: `https://docs.google.com/document/d/${meetingNotesCopy.result.id}/edit`
+            };
+            Pipeline.trackAnalysis(newAnalysis);
+            
+            // Step 4: Show Final Success Message
+            UI.updateResults(`
+                <div class="text-green-600 font-semibold">✅ Process complete!</div>
+                <div class="mt-3">
+                    <a href="${newAnalysis.folderLink}" target="_blank" class="text-blue-600 hover:underline text-sm">Open Folder →</a>
+                </div>
+            `, 'success', 0);
+            
+        } catch (error) {
+            console.error('❌ Error in create/upload process:', error);
+            const errorDetails = error.result ? error.result.error.message : error.message;
+            UI.updateResults(`❌ Error: ${errorDetails}. Please check console for details.`, 'error', 0);
+        }
+    },
+    
+    async setupSingleTemplate(templateKey) {
+        if (!State.isGoogleConnected) {
+            UI.updateResults('⚠️ Connect to Google Drive first', 'warning', 0, 'setupResults');
+            return;
+        }
+
+        const template = Config.TEMPLATES[templateKey];
+        const filePath = Config.TEMPLATE_PATHS[templateKey];
+        let templateFolderId;
+
+        try {
+            UI.updateResults('Finding templates folder...', 'info', 0, 'setupResults');
+            const searchResponse = await gapi.client.drive.files.list({
+                q: "name='VC_Copilot_Templates' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                fields: 'files(id, name)'
+            });
+            if (searchResponse.result.files && searchResponse.result.files.length > 0) {
+                templateFolderId = searchResponse.result.files[0].id;
+            } else {
+                UI.updateResults('Creating master templates folder...', 'info', 0, 'setupResults');
+                const folder = await gapi.client.drive.files.create({ resource: { name: 'VC_Copilot_Templates', mimeType: 'application/vnd.google-apps.folder' } });
+                templateFolderId = folder.result.id;
+            }
+        } catch (error) {
+            UI.updateResults('Error finding/creating templates folder.', 'error', 0, 'setupResults');
+            console.error(error);
+            return;
+        }
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.doc,.docx';
+
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                UI.updateResults('File selection cancelled.', 'warning', 5000, 'setupResults');
+                return;
+            }
+
+            UI.updateResults(`📤 Uploading ${template.name}...`, 'info', 0, 'setupResults');
+            
+            try {
+                const reader = new FileReader();
+                const fileContent = await new Promise(resolve => {
+                    reader.onload = (event) => resolve(event.target.result);
+                    reader.readAsBinaryString(file);
+                });
+
+                const boundary = '-------314159265358979323846';
+                const delimiter = "\r\n--" + boundary + "\r\n";
+                const close_delim = "\r\n--" + boundary + "--";
+                const base64Data = btoa(fileContent);
+
+                const existingFileSearch = await gapi.client.drive.files.list({
+                     q: `name='TEMPLATE_${templateKey}' and '${templateFolderId}' in parents and trashed=false`,
+                     fields: 'files(id)'
+                });
+
+                let response;
+                if (existingFileSearch.result.files.length > 0) {
+                    // UPDATE existing file
+                    const fileId = existingFileSearch.result.files[0].id;
+                    const updateMetadata = { name: `TEMPLATE_${templateKey}` }; // No parents field
+                    const multipartRequestBody =
+                        delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(updateMetadata) +
+                        delimiter + 'Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n' +
+                        'Content-Transfer-Encoding: base64\r\n\r\n' + base64Data + close_delim;
+                    
+                    response = await gapi.client.request({
+                        path: `/upload/drive/v3/files/${fileId}`,
+                        method: 'PATCH',
+                        params: { uploadType: 'multipart' },
+                        headers: { 'Content-Type': 'multipart/related; boundary="' + boundary + '"' },
+                        body: multipartRequestBody
+                    });
+
+                } else {
+                    // CREATE new file
+                    const createMetadata = {
+                        name: `TEMPLATE_${templateKey}`,
+                        mimeType: 'application/vnd.google-apps.document',
+                        parents: [templateFolderId]
+                    };
+                    const multipartRequestBody =
+                        delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(createMetadata) +
+                        delimiter + 'Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n' +
+                        'Content-Transfer-Encoding: base64\r\n\r\n' + base64Data + close_delim;
+                    
+                    response = await gapi.client.request({
+                        path: '/upload/drive/v3/files',
+                        method: 'POST',
+                        params: { uploadType: 'multipart' },
+                        headers: { 'Content-Type': 'multipart/related; boundary="' + boundary + '"' },
+                        body: multipartRequestBody
+                    });
+                }
+
+                State.templateIds[templateKey] = response.result.id;
+                localStorage.setItem('templateIds', JSON.stringify(State.templateIds));
+                UI.updateTemplateStatus();
+                UI.updateResults(`✅ ${template.name} setup successfully!`, 'success', 5000, 'setupResults');
+
+            } catch (error) {
+                console.error('Error uploading template:', error);
+                const errorDetails = error.result ? error.result.error.message : error.message;
+                UI.updateResults(`❌ Error uploading: ${errorDetails}`, 'error', 0, 'setupResults');
+            }
+        };
+
+        UI.updateResults(`
+            <div class="text-blue-600 font-semibold">📁 Select file for: ${template.name}</div>
+            <div class="text-xs text-gray-600 mt-1">Expected: ${filePath}</div>
+        `, 'info', 0, 'setupResults');
+        
+        fileInput.click();
+    },
+
+    clearTemplateSetup() {
+        State.templateIds = {};
+        localStorage.removeItem('templateIds');
+        UI.updateTemplateStatus();
+        UI.updateResults('✅ Cleared all saved template settings.', 'success', 5000, 'setupResults');
+    },
+
+    addCustomTemplate(name, pattern) {
+        const key = name.toLowerCase().replace(/\s+/g, '-');
+        if (Config.TEMPLATES[key]) {
+            UI.updateResults(`Template with key "${key}" already exists.`, 'error', 5000, 'setupResults');
+            return;
+        }
+        Config.TEMPLATES[key] = {
+            name: name,
+            keywords: [],
+            folder: 'main',
+            namePattern: pattern
+        };
+        localStorage.setItem('customTemplates', JSON.stringify(Config.TEMPLATES));
+        UI.populateTemplateDropdowns();
+        UI.updateTemplateStatus(); // Re-render the setup list
+        UI.updateResults(`✅ Custom template "${name}" added.`, 'success', 5000, 'setupResults');
+    },
+
+    loadCustomTemplates() {
+        const customTemplates = JSON.parse(localStorage.getItem('customTemplates') || '{}');
+        Object.assign(Config.TEMPLATES, customTemplates);
+    }
+};
+
+// ===== NEWS MODULE =====
+const NewsIntelligence = {
+    async startDeepResearch() {
+        console.log('🚀 Starting Deep Research...');
+        
+        UI.updateResults('🔍 Starting Deep Research across 6 sectors...', 'info');
+        
+        try {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const articles = [
+                {
+                    id: 'deep-1',
+                    title: 'Mexican Digital Bank Klar Raises $170M Series C',
+                    description: 'Klar completed a $170M Series C round, valued at $800M, positioning itself as Mexico\'s largest digital bank.',
+                    url: 'https://news.crunchbase.com/venture/mexico-leads-latam-funding-q2-2025/',
+                    source: 'Crunchbase',
+                    country: 'mexico',
+                    stage: 'series-c',
+                    sector: 'fintech',
+                    timestamp: new Date(Date.now() - 86400000 * 20).toISOString(),
+                    aiScore: 10,
+                    aiConfidence: 98,
+                    isDeepResearch: true
+                },
+                {
+                    id: 'deep-2',
+                    title: 'Brazilian LogTech Startup Loggi Eyes Expansion',
+                    description: 'Loggi is preparing for Series D funding to compete with Rappi in last-mile delivery across Brazil.',
+                    url: 'https://example.com/loggi-news',
+                    source: 'LogTech Intelligence',
+                    country: 'brazil',
+                    stage: 'series-d-prep',
+                    sector: 'logtech',
+                    timestamp: new Date(Date.now() - 86400000 * 10).toISOString(),
+                    aiScore: 9,
+                    aiConfidence: 85,
+                    isDeepResearch: true
+                },
+                {
+                    id: 'deep-3',
+                    title: 'Chilean HRTech Buk Secures $50M Series B',
+                    description: 'Santiago-based Buk raised $50M to expand HR software across Mexico, serving 3000+ companies.',
+                    url: 'https://news.crunchbase.com/venture/buk-series-b',
+                    source: 'HR Intelligence',
+                    country: 'chile',
+                    stage: 'series-b',
+                    sector: 'hrtech',
+                    timestamp: new Date(Date.now() - 86400000 * 180).toISOString(),
+                    aiScore: 8,
+                    aiConfidence: 95,
+                    isDeepResearch: true
+                }
+            ];
+            
+            State.newsData.articles = articles;
+            State.newsData.lastUpdate = new Date();
+            State.newsData.lastDeepResearch = new Date();
+            
+            this.renderNewsFeed(articles);
+            UI.updateNewsStats();
+            
+            UI.updateResults(`
+                <div class="text-green-600 font-bold text-lg">🎉 Deep Research Complete!</div>
+                <div class="text-sm text-gray-600 mt-1">Found ${articles.length} high-quality articles across sectors</div>
+                <div class="bg-blue-50 border border-blue-200 rounded p-3 mt-3">
+                    <div class="text-blue-700 text-sm font-semibold">📊 Sectors Covered</div>
+                    <div class="text-xs text-gray-700 mt-1">FinTech, LogTech, HRTech sectors analyzed</div>
+                </div>
+            `);
+            
+        } catch (error) {
+            console.error('❌ Deep research failed:', error);
+            UI.updateResults('❌ Deep research failed. Please try again.', 'error');
+        }
+    },
+    
+    renderNewsFeed(articles) {
+        const feedDiv = document.getElementById('newsFeed');
+        
+        if (articles.length === 0) {
+            feedDiv.innerHTML = `
+                <div class="text-center py-12 text-gray-500">
+                    <div class="mb-4">
+                        <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                        </svg>
+                    </div>
+                    <p class="font-medium text-gray-900 mb-2">Ready for AI-powered news intelligence</p>
+                    <p class="text-sm mb-4">Start Deep Research to analyze LATAM startup ecosystem</p>
+                    <button onclick="startDeepResearch()" class="btn-capria">
+                        Start Deep Research
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        const articlesHtml = articles.map(article => {
+            const sectorColors = {
+                fintech: 'bg-blue-100 text-blue-800',
+                agtech: 'bg-green-100 text-green-800',
+                healthtech: 'bg-red-100 text-red-800',
+                logtech: 'bg-yellow-100 text-yellow-800',
+                hrtech: 'bg-indigo-100 text-indigo-800',
+                jobtech: 'bg-pink-100 text-pink-800'
+            };
+            
+            return `
+                <div class="news-item bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow" data-country="${article.country}" data-sector="${article.sector}">
+                    ${article.isDeepResearch ? '<div class="text-purple-600 text-xs font-semibold mb-2 uppercase">🔍 Deep Research</div>' : ''}
+                    
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-900 mb-1">${article.title}</h4>
+                            <p class="text-sm text-gray-600">${article.description}</p>
+                        </div>
+                        <div class="ml-4 text-right">
+                            <span class="text-sm text-gray-500">${this.getCountryFlag(article.country)}</span>
+                            <div class="text-xs text-gray-400 mt-1">${this.getTimeAgo(article.timestamp)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="flex gap-2 text-xs">
+                            <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded">${article.source}</span>
+                            <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded">${article.stage}</span>
+                            <span class="px-2 py-1 ${sectorColors[article.sector] || 'bg-gray-100'} rounded font-medium">${article.sector.toUpperCase()}</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded">AI: ${article.aiScore}/10</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <button onclick="provideFeedback('${article.id}', 'like')" class="text-gray-400 hover:text-green-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                                </svg>
+                            </button>
+                            <button onclick="provideFeedback('${article.id}', 'dislike')" class="text-gray-400 hover:text-red-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"></path>
+                                </svg>
+                            </button>
+                            <a href="${article.url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">
+                                Read →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        feedDiv.innerHTML = articlesHtml;
+    },
+    
+    getCountryFlag(country) {
+        const flags = {
+            'brazil': '🇧🇷',
+            'mexico': '🇲🇽',
+            'argentina': '🇦�',
+            'colombia': '🇨🇴',
+            'chile': '🇨🇱'
+        };
+        return flags[country] || '🌎';
+    },
+    
+    getTimeAgo(timestamp) {
+        const now = new Date();
+        const time = new Date(timestamp);
+        const diffInHours = Math.floor((now - time) / (1000 * 60 * 60));
+        
+        if (diffInHours < 1) return 'Just now';
+        if (diffInHours < 24) return `${diffInHours}h ago`;
+        return `${Math.floor(diffInHours / 24)}d ago`;
+    },
+    
+    async refresh() {
+        console.log('📰 Quick refresh...');
+        UI.updateResults('🔄 Quick search for latest news...', 'info');
+        
+        const quickArticles = State.newsData.articles.slice(0, 3);
+        if (quickArticles.length > 0) {
+            this.renderNewsFeed(quickArticles);
+            UI.updateResults(`✅ Quick refresh complete! ${quickArticles.length} recent articles`, 'success');
+        } else {
+            UI.updateResults('No recent articles. Try Deep Research for comprehensive analysis.', 'warning');
+        }
+    }
+};
+
+// ===== FILTER MODULE =====
+const Filters = {
+    filterNews(country) {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('bg-blue-100', 'text-blue-700');
+            btn.classList.add('bg-gray-100', 'text-gray-700');
+        });
+        event.target.classList.remove('bg-gray-100', 'text-gray-700');
+        event.target.classList.add('bg-blue-100', 'text-blue-700');
+        
+        const newsItems = document.querySelectorAll('.news-item');
+        newsItems.forEach(item => {
+            if (country === 'all' || item.dataset.country === country) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    },
+    
+    filterBySector(sector) {
+        document.querySelectorAll('.sector-btn').forEach(btn => {
+            btn.classList.remove('bg-blue-100', 'text-blue-700');
+            btn.classList.add('bg-gray-100', 'text-gray-700');
+        });
+        event.target.classList.remove('bg-gray-100', 'text-gray-700');
+        event.target.classList.add('bg-blue-100', 'text-blue-700');
+        
+        const newsItems = document.querySelectorAll('.news-item');
+        newsItems.forEach(item => {
+            const articleSector = item.dataset.sector;
+            if (sector === 'all' || articleSector === sector) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+};
+
+// ===== LEARNING MODULE =====
+const Learning = {
+    provideFeedback(articleId, type) {
+        const article = State.newsData.articles.find(a => a.id === articleId);
+        if (!article) return;
+        
+        State.newsData.userFeedback[articleId] = type;
+        
+        const totalFeedback = Object.keys(State.newsData.userFeedback).length;
+        const positiveFeedback = Object.values(State.newsData.userFeedback).filter(f => f === 'like').length;
+        State.newsData.aiAccuracy = totalFeedback > 0 ? Math.round((positiveFeedback / totalFeedback) * 100) : 0;
+        
+        UI.updateNewsStats();
+        
+        const button = event.target.closest('button');
+        if (type === 'like') {
+            button.classList.add('text-green-600');
+        } else {
+            button.classList.add('text-red-600');
+        }
+        
+        console.log(`📊 User feedback: ${type} for ${article.sector} article from ${article.country}`);
+    },
+    
+    viewInsights() {
+        const feedback = State.newsData.userFeedback || {};
+        const totalFeedback = Object.keys(feedback).length;
+        
+        UI.updateResults(`
+            <div class="text-purple-600 font-bold text-lg">🧠 AI Learning Insights</div>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mt-3">
+                <h4 class="text-green-600 font-semibold mb-2">📊 Learning Status</h4>
+                <div class="text-sm text-gray-700 space-y-1">
+                    <div><strong>Feedback Responses:</strong> ${totalFeedback}</div>
+                    <div><strong>AI Accuracy:</strong> ${State.newsData.aiAccuracy}%</div>
+                    <div><strong>Status:</strong> ${totalFeedback > 0 ? 'Learning Active' : 'Ready for Training'}</div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded p-3 mt-3">
+                <div class="text-blue-700 text-sm font-semibold">
+                    🎯 AI will improve with more feedback on articles
+                </div>
+            </div>
+        `);
+    },
+    
+    exportData() {
+        const learningData = {
+            userFeedback: State.newsData.userFeedback,
+            aiAccuracy: State.newsData.aiAccuracy,
+            exportDate: new Date().toISOString(),
+            totalArticles: State.newsData.articles.length
+        };
+        
+        const dataStr = JSON.stringify(learningData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `vc-copilot-data-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        
+        URL.revokeObjectURL(url);
+        
+        UI.updateResults('💾 Learning data exported successfully!', 'success');
+    }
+};
+
+// ===== SYSTEM MODULE =====
+const System = {
+    toggleWorkday() {
+        State.isWorkDayActive = !State.isWorkDayActive;
+        localStorage.setItem('isWorkDayActive', JSON.stringify(State.isWorkDayActive));
+        UI.updateWorkdayButton();
+
+        if (State.isWorkDayActive) {
+            // Start of day
+            const newSession = {
+                id: Date.now(),
+                startTime: Date.now(),
+                endTime: null,
+                duration: null
+            };
+            State.workSessions.push(newSession);
+        } else {
+            // End of day
+            const currentSession = State.workSessions[State.workSessions.length - 1];
+            if (currentSession && !currentSession.endTime) {
+                currentSession.endTime = Date.now();
+                currentSession.duration = currentSession.endTime - currentSession.startTime;
+            }
+        }
+        localStorage.setItem('workSessions', JSON.stringify(State.workSessions));
+        UI.renderWorkdayDashboard();
+    },
+
+    testAll() {
+        const allTemplatesSetup = Object.keys(Config.TEMPLATES).every(key => State.templateIds[key]);
+        
+        UI.updateResults(`
+            <div class="text-blue-600 font-semibold">🧪 System Status Check</div>
+            
+            <div class="bg-gray-50 rounded-lg p-3 mt-3">
+                <div class="text-sm space-y-2">
+                    <div class="text-green-600">✅ Google Drive API: ${State.isGoogleConnected ? 'Connected' : 'Not Connected'}</div>
+                    <div class="${allTemplatesSetup ? 'text-green-600' : 'text-yellow-600'}">
+                        ${allTemplatesSetup ? '✅' : '⚠️'} Templates: ${allTemplatesSetup ? 'All Ready' : 'Setup Required'}
+                    </div>
+                    <div class="text-green-600">✅ News Intelligence: Ready</div>
+                    <div class="text-green-600">✅ Deep Research: Ready</div>
+                    <div class="text-green-600">✅ AI Learning: Active</div>
+                    <div class="text-green-600">✅ Sector Coverage: 6 sectors</div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded p-3 mt-3">
+                <div class="text-blue-600 text-sm">
+                    ${allTemplatesSetup ? '🚀 VC Copilot System is ready!' : '⚠️ Please setup templates to enable all features'}
+                </div>
+            </div>
+        `);
+    },
+    
+    viewStatus() {
+        const totalArticles = State.newsData.articles.length;
+        const totalFeedback = Object.keys(State.newsData.userFeedback).length;
+        const templatesSetup = Object.keys(State.templateIds).length;
+        
+        UI.updateResults(`
+            <div class="text-purple-600 font-bold text-lg">📊 Complete System Status</div>
+            
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <h4 class="text-green-600 font-semibold mb-2">📄 Template System</h4>
+                    <div class="text-xs text-gray-700 space-y-1">
+                        <div>Google Drive: ${State.isGoogleConnected ? '✅ Connected' : '❌ Disconnected'}</div>
+                        <div>Companies: ${Object.keys(State.companyFolders).length} configured</div>
+                        <div>Templates Setup: ${templatesSetup}/6</div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <h4 class="text-purple-600 font-semibold mb-2">🧠 News Intelligence</h4>
+                    <div class="text-xs text-gray-700 space-y-1">
+                        <div>Articles: ${totalArticles}</div>
+                        <div>Feedback: ${totalFeedback} responses</div>
+                        <div>AI Accuracy: ${State.newsData.aiAccuracy}%</div>
+                        <div>Sectors: 6 active</div>
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+};
+
+// ===== CUBO DATABASE MODULE =====
+const CuboDatabase = {
+    async fetchData() {
+        if (!State.isGoogleConnected) {
+            UI.updateResults('⚠️ Connect to Google Drive & Sheets first', 'warning');
+            return;
+        }
+        UI.updateResults('🔄 Loading Cubo Database...', 'info');
+        try {
+            const response = await gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: Config.CUBO_SHEET_ID,
+                range: 'Sheet1!A1:G1000',
+            });
+            const rows = response.result.values;
+            if (rows && rows.length > 0) {
+                const headers = rows[0];
+                State.cuboData = rows.slice(1).map(row => {
+                    let obj = {};
+                    headers.forEach((header, i) => {
+                        obj[header] = row[i];
+                    });
+                    return obj;
+                });
+                this.renderData();
+                UI.updateResults('✅ Cubo Database loaded successfully.', 'success');
+            } else {
+                UI.updateResults('No data found in Cubo sheet.', 'warning');
+            }
+        } catch (err) {
+            console.error("Error fetching Cubo data:", err);
+            UI.updateResults('❌ Failed to load Cubo Database.', 'error');
+        }
+    },
+
+    renderData(filterText = '') {
+        const container = document.getElementById('cuboDatabase');
+        const searchTerm = filterText.toLowerCase();
+        
+        const filteredData = State.cuboData.filter(row => {
+            return Object.values(row).some(value => 
+                String(value).toLowerCase().includes(searchTerm)
+            );
+        });
+
+        if (filteredData.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500 py-4">No matching startups found.</p>';
+            return;
+        }
+
+        const headers = Object.keys(filteredData[0]);
+        const tableHeaders = `
+            <thead class="bg-gray-50">
+                <tr>
+                    ${headers.map(h => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${h}</th>`).join('')}
+                </tr>
+            </thead>
+        `;
+
+        const tableRows = filteredData.map(row => `
+            <tr class="bg-white border-b hover:bg-gray-50">
+                ${headers.map(h => {
+                    const cellValue = row[h] || '';
+                    const isLink = cellValue.startsWith('http');
+                    const cellContent = isLink 
+                        ? `<a href="${cellValue}" target="_blank" class="text-blue-600 hover:underline">${cellValue}</a>`
+                        : cellValue;
+                    return `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${cellContent}</td>`;
+                }).join('')}
+            </tr>
+        `).join('');
+
+        container.innerHTML = `
+            <table class="min-w-full divide-y divide-gray-200">
+                ${tableHeaders}
+                <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
+            </table>
+        `;
+    }
+};
+
+// ===== DAILY SOURCING MODULE =====
+const DailySourcing = {
+    async fetchData() {
+        if (!State.isGoogleConnected) {
+            UI.updateResults('⚠️ Connect to Google Drive & Sheets first', 'warning');
+            return;
+        }
+        UI.updateResults('🔄 Loading Daily Sourcing Suggestions...', 'info');
+        try {
+            // First, get the sheet metadata to find the name of the first sheet
+            const metaResponse = await gapi.client.sheets.spreadsheets.get({
+                spreadsheetId: Config.DAILY_SOURCING_SHEET_ID
+            });
+            const firstSheetName = metaResponse.result.sheets[0].properties.title;
+            const range = `'${firstSheetName}'!A1:Z100`;
+
+            // Now, fetch the data using the correct sheet name
+            const response = await gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: Config.DAILY_SOURCING_SHEET_ID,
+                range: range,
+            });
+            const rows = response.result.values;
+            if (rows && rows.length > 0) {
+                const headers = rows[0];
+                State.dailySourcingData = rows.slice(1).map(row => {
+                    let obj = {};
+                    headers.forEach((header, i) => {
+                        obj[header] = row[i];
+                    });
+                    return obj;
+                });
+                this.renderData();
+                UI.updateResults('✅ Daily Suggestions loaded successfully.', 'success');
+            } else {
+                UI.updateResults('No data found in the daily sourcing sheet.', 'warning');
+            }
+        } catch (err) {
+            console.error("Error fetching Daily Sourcing data:", err);
+            UI.updateResults('❌ Failed to load Daily Sourcing data.', 'error');
+        }
+    },
+
+    renderData() {
+        const container = document.getElementById('dailySourcingDashboard');
+        if (State.dailySourcingData.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500 py-4">No suggestions loaded.</p>';
+            return;
+        }
+
+        const headers = Object.keys(State.dailySourcingData[0]);
+        const tableHeaders = `
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interested?</th>
+                    ${headers.map(h => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${h}</th>`).join('')}
+                </tr>
+            </thead>
+        `;
+
+        const tableRows = State.dailySourcingData.map((row, index) => {
+            const companyName = row['COMPANY NAME'];
+            const feedback = State.sourcingFeedback[companyName];
+            let feedbackCellContent;
+
+            if (feedback) {
+                feedbackCellContent = `<span class="font-semibold ${feedback === 'Interested' ? 'text-green-600' : 'text-red-600'}">${feedback}</span>`;
+            } else {
+                feedbackCellContent = `
+                    <button onclick="DailySourcing.giveFeedback(this, ${index}, 'Interested')" class="text-green-600 hover:text-green-800">Yes</button>
+                    <button onclick="DailySourcing.giveFeedback(this, ${index}, 'Not Interested')" class="text-red-600 hover:text-red-800 ml-4">No</button>
+                `;
+            }
+
+            return `
+                <tr class="bg-white border-b hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${feedbackCellContent}</td>
+                    ${headers.map(h => {
+                        const cellValue = row[h] || '';
+                        const isLink = cellValue.startsWith('http') || (cellValue.includes('.') && !cellValue.includes(' '));
+                        const cellContent = isLink 
+                            ? `<a href="https://${cellValue.replace(/^(https?:\/\/)/, '')}" target="_blank" class="text-blue-600 hover:underline">${cellValue}</a>`
+                            : cellValue;
+                        return `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${cellContent}</td>`;
+                    }).join('')}
+                </tr>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <table class="min-w-full divide-y divide-gray-200">
+                ${tableHeaders}
+                <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
+            </table>
+        `;
+    },
+
+    async giveFeedback(buttonElement, rowIndex, feedback) {
+        if (!State.isGoogleConnected) {
+            UI.updateResults('⚠️ Connect to Google Drive & Sheets first', 'warning');
+            return;
+        }
+
+        const startupData = State.dailySourcingData[rowIndex];
+        const companyName = startupData['COMPANY NAME'];
+        const headers = Object.keys(startupData);
+        const values = headers.map(h => startupData[h]);
+        values.push(feedback); // Add the feedback to the end of the row
+
+        try {
+            await gapi.client.sheets.spreadsheets.values.append({
+                spreadsheetId: Config.SOURCING_FEEDBACK_SHEET_ID,
+                range: 'Sheet1!A1',
+                valueInputOption: 'USER_ENTERED',
+                resource: {
+                    values: [values]
+                }
+            });
+
+            State.sourcingFeedback[companyName] = feedback;
+            localStorage.setItem('sourcingFeedback', JSON.stringify(State.sourcingFeedback));
+            
+            UI.updateResults(`Feedback for ${companyName} saved!`, 'success');
+            
+            const cell = buttonElement.parentElement;
+            cell.innerHTML = `<span class="font-semibold ${feedback === 'Interested' ? 'text-green-600' : 'text-red-600'}">${feedback}</span>`;
+
+        } catch (err) {
+            console.error("Error saving feedback:", err);
+            UI.updateResults('❌ Failed to save feedback.', 'error');
+        }
+    }
+};
+
+// ===== TASKS MODULE =====
+const Tasks = {
+    async getTaskLists() {
+        if (!State.isGoogleConnected) return;
+        try {
+            const response = await gapi.client.tasks.tasklists.list();
+            State.taskLists = response.result.items;
+            UI.renderTasksDashboard();
+            if (State.taskLists && State.taskLists.length > 0) {
+                this.fetchTasks(); // Automatically fetch tasks for the first list
+            }
+        } catch (err) {
+            console.error("Error fetching task lists:", err);
+        }
+    },
+
+    async fetchTasks() {
+        const taskListId = document.getElementById('taskLists').value;
+        if (!taskListId) return;
+        try {
+            const response = await gapi.client.tasks.tasks.list({
+                tasklist: taskListId,
+                showCompleted: false
+            });
+            State.tasks = response.result.items || [];
+            UI.renderTasks(State.tasks, 'allTasks');
+        } catch (err) {
+            console.error("Error fetching tasks:", err);
+        }
+    },
+
+    async updateTaskStatus(taskId, isComplete) {
+        const taskListId = document.getElementById('taskLists').value;
+        try {
+            await gapi.client.tasks.tasks.update({
+                tasklist: taskListId,
+                task: taskId,
+                resource: {
+                    id: taskId,
+                    status: isComplete ? 'completed' : 'needsAction'
+                }
+            });
+            
+            if(isComplete) {
+                State.todaysFocusTasks = State.todaysFocusTasks.filter(t => t.id !== taskId);
+                localStorage.setItem('todaysFocusTasks', JSON.stringify(State.todaysFocusTasks));
+                UI.renderTasks(State.todaysFocusTasks, 'todayFocusTasks');
+            }
+
+            this.fetchTasks();
+        } catch (err) {
+            console.error("Error updating task:", err);
+        }
+    },
+
+    addToToday(taskId) {
+        const task = State.tasks.find(t => t.id === taskId);
+        if (task && !State.todaysFocusTasks.some(t => t.id === taskId)) {
+            State.todaysFocusTasks.push(task);
+            localStorage.setItem('todaysFocusTasks', JSON.stringify(State.todaysFocusTasks));
+            UI.renderTasks(State.todaysFocusTasks, 'todayFocusTasks');
+        }
+    }
+};
+
+
+// ===== GLOBAL FUNCTIONS (for onclick handlers) =====
+function showTab(tabName) { UI.showTab(tabName); }
+function connectGoogle() { GoogleDrive.connect(); }
+function createFoldersAndUpload() { TemplateSystem.createFoldersAndUpload(); }
+function setupSingleTemplate(key) { TemplateSystem.setupSingleTemplate(key); }
+function clearTemplateSetup() { TemplateSystem.clearTemplateSetup(); }
+function handleManualFormSubmit(event) {
+    event.preventDefault();
+    const data = {
+        companyName: document.getElementById('manualCompanyName').value,
+        sector: document.getElementById('manualSector').value,
+        analysisType: document.getElementById('manualAnalysisType').value,
+        folderLink: document.getElementById('manualFolderLink').value,
+        docLink: document.getElementById('manualDocLink').value,
+        notesLink: document.getElementById('manualNotesLink').value
+    };
+    Pipeline.addManualAnalysis(data);
+    UI.hideManualEntryModal();
+}
+function handleCustomTemplateFormSubmit(event) {
+    event.preventDefault();
+    const name = document.getElementById('customTemplateName').value;
+    const pattern = document.getElementById('customTemplatePattern').value;
+    TemplateSystem.addCustomTemplate(name, pattern);
+    event.target.reset();
+}
+function startDeepResearch() { NewsIntelligence.startDeepResearch(); }
+function refreshNews() { NewsIntelligence.refresh(); }
+function filterNews(country) { Filters.filterNews(country); }
+function filterBySector(sector) { Filters.filterBySector(sector); }
+function provideFeedback(articleId, type) { Learning.provideFeedback(articleId, type); }
+function viewLearningInsights() { Learning.viewInsights(); }
+function exportLearningData() { Learning.exportData(); }
+function testAllTemplates() { System.testAll(); }
+function viewSystemStatus() { System.viewStatus(); }
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ VC Copilot System loaded');
+    
+    TemplateSystem.loadCustomTemplates();
+    UI.populateTemplateDropdowns();
+    UI.renderAllDashboards();
+    UI.updateWorkdayButton();
+    setInterval(UI.updateClock, 1000);
+    
+    document.getElementById('manualEntryForm').addEventListener('submit', handleManualFormSubmit);
+    document.getElementById('customTemplateForm').addEventListener('submit', handleCustomTemplateFormSubmit);
+    document.getElementById('workdayBtn').addEventListener('click', System.toggleWorkday);
+    document.getElementById('cuboSearch').addEventListener('input', (e) => CuboDatabase.renderData(e.target.value));
+    document.getElementById('taskLists').addEventListener('change', Tasks.fetchTasks);
+    
+    if (!document.getElementById('configContent').classList.contains('hidden')) {
+        UI.updateTemplateStatus();
+    }
+    
+    setTimeout(() => GoogleDrive.init(), 1000);
+});
+
+console.log('✅ VC Copilot - Complete System loaded successfully');
+</script>
+
+</body>
+</html>
+�
